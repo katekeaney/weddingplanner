@@ -1,9 +1,7 @@
 // Wedding planner API for Vercel.
 // Stores the plan in Upstash Redis (add it from the Vercel Marketplace; the
-// integration sets the connection variables for you) and protects it with a
-// shared passcode set in the PLAN_PASSCODE environment variable.
-
-const crypto = require("crypto");
+// integration sets the connection variables for you). Anyone with the site's
+// link can view and edit the plan.
 
 const COLS = ["tasks", "budget", "vendors", "guests"];
 const KEY = (col) => `wedding:${col}`;
@@ -29,12 +27,6 @@ async function redis(commands) {
   const out = await res.json();
   for (const r of out) if (r && r.error) throw new Error(`Database error: ${r.error}`);
   return out.map((r) => r.result);
-}
-
-function samePasscode(given, expected) {
-  const a = crypto.createHash("sha256").update(String(given)).digest();
-  const b = crypto.createHash("sha256").update(String(expected)).digest();
-  return crypto.timingSafeEqual(a, b);
 }
 
 // Keep only plain values a planner row needs.
@@ -109,14 +101,8 @@ async function seedExamples() {
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
-  if (!process.env.PLAN_PASSCODE) {
-    return res.status(500).json({ error: "Set a PLAN_PASSCODE environment variable in Vercel, then redeploy." });
-  }
   if (!redisConfig()) {
     return res.status(500).json({ error: "Connect an Upstash Redis database to this project in Vercel, then redeploy." });
-  }
-  if (!samePasscode(req.headers["x-passcode"] || "", process.env.PLAN_PASSCODE)) {
-    return res.status(401).json({ error: "Wrong passcode" });
   }
 
   try {

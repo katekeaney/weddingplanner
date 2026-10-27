@@ -169,21 +169,9 @@ label.field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); let
 @media (prefers-reduced-motion: no-preference) { .toast { animation: rise .2s ease-out; } @keyframes rise { from { transform: translate(-50%, 8px); opacity: 0; } } }
 html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; }
-.gate { max-width: 380px; margin: 12vh auto 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: grid; gap: 14px; }
-.gate h2 { font-family: var(--font-display); font-weight: 500; font-size: 28px; margin: 0; }
-.gate p { margin: 0; color: var(--muted); font-size: 14px; }
-.gate .err { color: var(--bad); }
 </style>
 </head>
 <body>
-<form class="gate" id="gate" hidden>
-  <div class="eyebrow">Wedding planner</div>
-  <h2>Enter your passcode</h2>
-  <p>This plan is private to the two of you. Use the passcode you set in Vercel.</p>
-  <input class="input" id="gate-pass" type="password" autocomplete="current-password" aria-label="Passcode" required>
-  <p class="err" id="gate-err" hidden></p>
-  <button class="btn" type="submit">Open our plan</button>
-</form>
 
 <div class="wrap" id="app">
   <header class="mast">
@@ -266,31 +254,19 @@ body { margin: 0; }
     clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 3200);
   }
   // ---------- Server API (Vercel function at /api/plan) ----------
-  const PASS_KEY = "wedding-planner-passcode";
-  let passcode = "";
-  try { passcode = localStorage.getItem(PASS_KEY) || ""; } catch (e) {}
-
   async function api(body) {
     const res = await fetch("/api/plan", {
       method: body ? "POST" : "GET",
-      headers: Object.assign({ "x-passcode": passcode }, body ? { "content-type": "application/json" } : {}),
+      headers: body ? { "content-type": "application/json" } : {},
       body: body ? JSON.stringify(body) : undefined,
       cache: "no-store"
     });
-    if (res.status === 401) { const e = new Error("locked"); e.code = "locked"; throw e; }
     const json = await res.json().catch(() => ({}));
     if (!res.ok) { const e = new Error(json.error || "Request failed"); e.code = "server"; throw e; }
     return json;
   }
 
-  function showGate(msg) {
-    $("app").hidden = true; $("gate").hidden = false;
-    $("gate-err").hidden = !msg; $("gate-err").textContent = msg || "";
-    $("gate-pass").focus();
-  }
-
   function fail(e) {
-    if (e && e.code === "locked") { showGate("That passcode didn't work. Try again."); return; }
     toast(e && e.code === "server" ? e.message : "That change didn't save. Check your connection and try again.");
     load();
   }
@@ -339,11 +315,9 @@ body { margin: 0; }
       state.meta = plan.meta || {};
       for (const c of COLS) state[c] = Array.isArray(plan[c]) ? plan[c] : [];
       state.loaded = true;
-      $("gate").hidden = true; $("app").hidden = false;
       render();
     } catch (e) {
-      if (e.code === "locked") showGate(passcode ? "That passcode didn't work. Try again." : "");
-      else if (e.code === "server") { state.loaded = true; render(); toast(e.message); }
+      if (e.code === "server") { state.loaded = true; render(); toast(e.message); }
       else if (!state.loaded) { $("panel").innerHTML = `<div class="empty">Couldn't reach your plan. Check your connection and reload the page.</div>`; }
     }
   }
@@ -595,19 +569,11 @@ body { margin: 0; }
   });
 
   // ---------- Boot ----------
-  $("gate").addEventListener("submit", (e) => {
-    e.preventDefault();
-    passcode = $("gate-pass").value.trim();
-    try { localStorage.setItem(PASS_KEY, passcode); } catch (err) {}
-    $("gate-err").hidden = true;
-    load();
-  });
-
   fromHash(); render();
   load();
   // Pick up your partner's changes: refresh every 20 seconds while the page is open, and when you come back to it.
-  setInterval(() => { if (document.visibilityState === "visible" && !$("app").hidden) load(); }, 20000);
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !$("app").hidden) load(); });
+  setInterval(() => { if (document.visibilityState === "visible") load(); }, 20000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") load(); });
 })();
 </script>
 </body>
