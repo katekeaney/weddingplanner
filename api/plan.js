@@ -3,7 +3,7 @@
 // integration sets the connection variables for you). Anyone with the site's
 // link can view and edit the plan.
 
-const COLS = ["tasks", "budget", "vendors", "guests"];
+const COLS = ["tasks", "budget", "vendors", "guests", "payments"];
 const KEY = (col) => `wedding:${col}`;
 const META = "wedding:meta";
 const SEEDED = "wedding:seeded";
@@ -98,6 +98,58 @@ async function seedExamples() {
   await redis(cmds);
 }
 
+// One-time import of the couple's payment spreadsheet (DnK_WeddingPayments).
+// Runs once on the first page load after deploy, removes the example entries,
+// and adds the real vendors and payment schedule.
+const IMPORT_KEY = "wedding:import:dnk-payments-1";
+const IMPORT_VENDORS = [
+  ["imp-v-hills", "Hills", "Venue", 13500, "deposit"],
+  ["imp-v-kat", "Kat", "Photographer", 6100, "deposit"],
+  ["imp-v-dress", "Dress", "Attire", 5010.58, "deposit"],
+  ["imp-v-coord", "Event coordinator", "Coordinator", 2180, "deposit"],
+  ["imp-v-flowers", "Flowers", "Florist", 4133.22, "deposit"],
+  ["imp-v-rentals", "Rentals", "Rentals", null, "researching"],
+  ["imp-v-makeup", "Makeup & hair", "Makeup and hair", 3150, "deposit"],
+  ["imp-v-music", "Payton and Eliot", "Musicians", null, "booked"],
+  ["imp-v-video", "Videographer", "Videographer", null, "researching"],
+  ["imp-v-face", "Face painter", "Face painter", 650, "booked"],
+  ["imp-v-cow", "Cow", "Other", null, "researching"]
+];
+const IMPORT_PAYMENTS = [
+  ["Hills", "Deposit", "2026-08-08", 8500, true],
+  ["Hills", "Security deposit", "2027-07-28", 1000, false],
+  ["Hills", "Half of food (estimate, about $4k)", "2027-07-28", 4000, false],
+  ["Hills", "Final bill: F&B, 20% tip, ID sales tax. Arrives by 9/25, due within 30 days", "", null, false],
+  ["Kat", "Deposit", "2026-08-09", 1000, true],
+  ["Kat", "Balance", "2027-09-08", 5100, false],
+  ["Dress", "Deposit", "2026-08-17", 2505.29, true],
+  ["Dress", "Balance, due on arrival", "", 2505.29, false],
+  ["Event coordinator", "Deposit", "2026-08-20", 1090, true],
+  ["Event coordinator", "Balance", "2027-09-11", 1090, false],
+  ["Flowers", "Deposit", "2026-09-25", 1146.6, true],
+  ["Flowers", "Balance", "2027-08-11", 2986.62, false],
+  ["Makeup & hair", "Deposit", "2026-08-24", 945, true],
+  ["Makeup & hair", "Balance", "2027-08-24", 2205, false],
+  ["Face painter", "Payment (no deposit)", "2027-09-11", 650, false]
+];
+
+async function importSpreadsheet() {
+  const [first] = await redis([["SET", IMPORT_KEY, new Date().toISOString(), "NX"]]);
+  if (first !== "OK") return;
+  const plan = await readPlan();
+  const cmds = [];
+  for (const c of COLS) {
+    const ids = plan[c].filter((r) => r.example).map((r) => r.id);
+    if (ids.length) cmds.push(["HDEL", KEY(c), ...ids]);
+  }
+  if (plan.meta.example) cmds.push(["SET", META, JSON.stringify({})]);
+  cmds.push(["HSET", KEY("vendors"), ...IMPORT_VENDORS.flatMap(([id, name, category, cost, status], i) =>
+    [id, JSON.stringify({ name, category, contact: "", cost, status, created: 1000 + i })])]);
+  cmds.push(["HSET", KEY("payments"), ...IMPORT_PAYMENTS.flatMap(([vendor, label, due, amount, paid], i) =>
+    [`imp-p${i + 1}`, JSON.stringify({ vendor, label, due, amount, paid, created: 1000 + i })])]);
+  await redis(cmds);
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
@@ -108,6 +160,7 @@ module.exports = async function handler(req, res) {
   try {
     if (req.method === "GET") {
       await seedExamples();
+      await importSpreadsheet();
       return res.status(200).json(await readPlan());
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });

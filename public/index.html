@@ -143,6 +143,30 @@ label.field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); let
 .task input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; margin: 0 auto; }
 .task.done .input { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
 
+/* Payments */
+.g-pay { grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1.9fr) 150px 120px 72px; }
+.g-pay input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; margin: 0 auto; }
+.pay.done .input { color: var(--muted); }
+.due-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.chip.good { background: var(--good-soft); color: var(--good); }
+.add-pay { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) 150px 120px auto; }
+.list-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card); }
+.seg button { border: 0; background: none; padding: 7px 14px; cursor: pointer; color: var(--muted); font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.pay-note { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.pay-note strong { color: var(--ink); font-weight: 600; }
+.pay-note .warn { color: var(--bad); font-weight: 600; }
+@media (max-width: 760px) {
+  .g-pay { grid-template-columns: 28px 1fr 1fr; padding-block: 12px; }
+  .g-pay > :nth-child(1) { grid-row: 1 / span 3; align-self: start; margin-top: 10px; }
+  .g-pay > :nth-child(2), .g-pay > :nth-child(3) { grid-column: 2 / -1; }
+  .g-pay .del { grid-column: 3; justify-self: end; }
+  .add-pay { grid-template-columns: 1fr 1fr; }
+  .add-pay > :nth-child(2) { grid-column: 1 / -1; }
+}
+
 /* Budget */
 .budget-bar { display: grid; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
 .budget-figs { display: flex; flex-wrap: wrap; gap: 8px 28px; }
@@ -205,9 +229,10 @@ body { margin: 0; }
   <section class="summary" id="summary" aria-label="Planning summary"></section>
 
   <nav class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-tab="payments" id="tab-payments" type="button">Payments<span class="count"></span></button>
+    <button class="tab" role="tab" data-tab="vendors" id="tab-vendors" type="button">Vendors<span class="count"></span></button>
     <button class="tab" role="tab" data-tab="checklist" id="tab-checklist" type="button">Checklist<span class="count"></span></button>
     <button class="tab" role="tab" data-tab="budget" id="tab-budget" type="button">Budget<span class="count"></span></button>
-    <button class="tab" role="tab" data-tab="vendors" id="tab-vendors" type="button">Vendors<span class="count"></span></button>
     <button class="tab" role="tab" data-tab="guests" id="tab-guests" type="button">Guests<span class="count"></span></button>
   </nav>
 
@@ -238,16 +263,35 @@ body { margin: 0; }
     { v: "yes", l: "Attending", c: "st-good" },
     { v: "no", l: "Declined", c: "st-bad" }
   ];
-  const COLS = ["tasks", "budget", "vendors", "guests"];
+  const COLS = ["tasks", "budget", "vendors", "guests", "payments"];
 
-  const state = { meta: {}, tasks: [], budget: [], vendors: [], guests: [], loaded: false };
-  let tab = "checklist", pending = false;
+  const state = { meta: {}, tasks: [], budget: [], vendors: [], guests: [], payments: [], loaded: false };
+  let tab = "payments", pending = false, payView = "date";
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
   const money = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
   const byCreated = (a, b) => (a.created || 0) - (b.created || 0) || String(a.id).localeCompare(String(b.id));
+  const money2 = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  const hasAmount = (p) => p.amount !== null && p.amount !== undefined && p.amount !== "";
+  const todayISO = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  const fmtDate = (iso) => (iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Date to be set");
+  const daysUntil = (iso) => Math.round((new Date(iso + "T12:00:00") - new Date(todayISO() + "T12:00:00")) / 86400000);
+  const byDue = (a, b) => (a.due || "9999").localeCompare(b.due || "9999") || byCreated(a, b);
+
+  function payTotals() {
+    const today = todayISO();
+    const known = state.payments.filter(hasAmount);
+    const total = known.reduce((s, p) => s + num(p.amount), 0);
+    const paid = known.filter((p) => p.paid).reduce((s, p) => s + num(p.amount), 0);
+    const open = state.payments.filter((p) => !p.paid);
+    const unpriced = open.filter((p) => !hasAmount(p)).length;
+    const dated = open.filter((p) => p.due).sort(byDue);
+    const overdue = dated.filter((p) => p.due < today);
+    const next = dated.find((p) => p.due >= today) || null;
+    return { total, paid, due: total - paid, unpriced, overdue, next };
+  }
 
   function toast(msg) {
     const t = $("toast"); t.textContent = msg; t.hidden = false;
@@ -362,13 +406,13 @@ body { margin: 0; }
     const yes = state.guests.filter((g) => g.rsvp === "yes").reduce((s, g) => s + Math.max(1, num(g.party)), 0);
     const no = state.guests.filter((g) => g.rsvp === "no").reduce((s, g) => s + Math.max(1, num(g.party)), 0);
     const pct = (a, z) => (z ? Math.min(100, Math.round((a / z) * 100)) : 0);
-    const over = b.total && b.committed > b.total;
+    const pt = payTotals();
     $("summary").innerHTML = `
       <div class="stat"><span class="stat-label">Tasks done</span><span class="stat-value">${done}<span class="stat-sub"> / ${nt}</span></span>
         <div class="meter"><span style="width:${pct(done, nt)}%"></span></div></div>
-      <div class="stat"><span class="stat-label">Budget planned</span><span class="stat-value">${money(b.committed)}</span>
-        <div class="meter${over ? " over" : ""}"><span style="width:${pct(b.committed, b.total)}%"></span></div>
-        <span class="stat-sub">${b.total ? (over ? money(b.committed - b.total) + " over" : money(b.total - b.committed) + " left of " + money(b.total)) : "Set a total budget"}</span></div>
+      <div class="stat"><span class="stat-label">Paid so far</span><span class="stat-value">${money(pt.paid)}</span>
+        <div class="meter"><span style="width:${pct(pt.paid, pt.total)}%"></span></div>
+        <span class="stat-sub">${pt.total ? money(pt.due) + " still to pay" : "No payments yet"}${pt.overdue.length ? ", " + pt.overdue.length + " overdue" : ""}</span></div>
       <div class="stat"><span class="stat-label">Vendors booked</span><span class="stat-value">${booked}<span class="stat-sub"> / ${state.vendors.length}</span></span>
         <div class="meter"><span style="width:${pct(booked, state.vendors.length)}%"></span></div></div>
       <div class="stat"><span class="stat-label">Guests attending</span><span class="stat-value">${yes}<span class="stat-sub"> / ${invited}</span></span>
@@ -386,7 +430,7 @@ body { margin: 0; }
   }
 
   function renderTabs() {
-    const counts = { checklist: state.tasks.length, budget: state.budget.length, vendors: state.vendors.length, guests: state.guests.length };
+    const counts = { payments: state.payments.length, checklist: state.tasks.length, budget: state.budget.length, vendors: state.vendors.length, guests: state.guests.length };
     document.querySelectorAll(".tab").forEach((b) => {
       b.setAttribute("aria-selected", String(b.dataset.tab === tab));
       b.querySelector(".count").textContent = counts[b.dataset.tab] || "";
@@ -402,7 +446,8 @@ body { margin: 0; }
   function renderPanel() {
     const p = $("panel");
     if (!state.loaded) { p.innerHTML = `<div class="empty">Loading your plan…</div>`; return; }
-    if (tab === "checklist") p.innerHTML = viewChecklist();
+    if (tab === "payments") p.innerHTML = viewPayments();
+    else if (tab === "checklist") p.innerHTML = viewChecklist();
     else if (tab === "budget") p.innerHTML = viewBudget();
     else if (tab === "vendors") p.innerHTML = viewVendors();
     else p.innerHTML = viewGuests();
@@ -479,6 +524,72 @@ body { margin: 0; }
     return html + `</div>`;
   }
 
+  function payRow(p) {
+    const overdue = !p.paid && p.due && p.due < todayISO();
+    return `<div class="row g-pay pay${p.paid ? " done" : ""}">
+      <input type="checkbox" ${p.paid ? "checked" : ""} data-col="payments" data-id="${esc(p.id)}" data-field="paid" aria-label="Mark paid">
+      <div class="mob-label" data-label="Vendor"><input class="input" list="vendor-names" ${f("payments", p.id, "vendor", p.vendor)} aria-label="Vendor"></div>
+      <div class="mob-label" data-label="Payment"><input class="input" ${f("payments", p.id, "label", p.label)} aria-label="What it's for"></div>
+      <div class="mob-label" data-label="Due"><div class="due-cell"><input class="input" type="date" ${f("payments", p.id, "due", p.due)} aria-label="Due date">${overdue ? '<span class="chip bad">Overdue</span>' : ""}</div></div>
+      <div class="mob-label" data-label="Amount"><input class="input num" type="number" min="0" step="0.01" ${f("payments", p.id, "amount", hasAmount(p) ? p.amount : "")} placeholder="TBD" aria-label="Amount"></div>
+      ${delBtn("payments", p.id)}</div>`;
+  }
+
+  function payGroup(title, rows, sub) {
+    if (!rows.length) return "";
+    const sum = rows.filter(hasAmount).reduce((s, p) => s + num(p.amount), 0);
+    return `<section class="phase"><div class="phase-head"><h3>${esc(title)}</h3><span class="tally">${sub || money2(sum)}</span></div>
+      <div class="list"><div class="head g-pay"><span></span><span>Vendor</span><span>Payment</span><span>Due</span><span style="text-align:right">Amount</span><span></span></div>
+      ${rows.map(payRow).join("")}</div></section>`;
+  }
+
+  function viewPayments() {
+    const t = payTotals();
+    const names = [...new Set([...state.vendors.map((v) => v.name), ...state.payments.map((p) => p.vendor)].filter(Boolean))];
+    const nextLine = t.next
+      ? `<span>Next: <strong>${hasAmount(t.next) ? money2(num(t.next.amount)) : "Amount to be set"}</strong> to ${esc(t.next.vendor || "a vendor")} on ${fmtDate(t.next.due)} (${daysUntil(t.next.due)} days)</span>`
+      : "";
+    let html = `<datalist id="vendor-names">${names.map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
+      <div class="budget-bar">
+        <div class="budget-figs">
+          <div class="fig"><span>Total scheduled</span><b>${money2(t.total)}</b></div>
+          <div class="fig"><span>Paid so far</span><b>${money2(t.paid)}</b></div>
+          <div class="fig"><span>Still to pay</span><b>${money2(t.due)}</b></div>
+        </div>
+        ${t.total ? `<div class="stack" role="img" aria-label="${money2(t.paid)} paid of ${money2(t.total)}"><div class="s-paid" style="width:${Math.min(100, (t.paid / t.total) * 100)}%"></div></div>` : ""}
+        <div class="pay-note">${nextLine}${t.overdue.length ? `<span class="warn">${t.overdue.length} overdue</span>` : ""}${t.unpriced ? `<span>${t.unpriced} payment${t.unpriced > 1 ? "s" : ""} without an amount yet, not counted in totals</span>` : ""}</div>
+      </div>
+      <form class="addbar add-pay" data-add="payments">
+        <input class="input" name="vendor" list="vendor-names" placeholder="Vendor" aria-label="Vendor" required>
+        <input class="input" name="label" placeholder="What it's for, like “Deposit”" aria-label="What it's for">
+        <input class="input" name="due" type="date" aria-label="Due date">
+        <input class="input num" name="amount" type="number" min="0" step="0.01" placeholder="Amount $" aria-label="Amount">
+        <button class="btn" type="submit">Add payment</button></form>
+      <div class="list-tools"><div class="seg" role="group" aria-label="Group payments">
+        <button type="button" data-pview="date" aria-pressed="${payView === "date"}">By due date</button>
+        <button type="button" data-pview="vendor" aria-pressed="${payView === "vendor"}">By vendor</button></div></div>`;
+    if (!state.payments.length) return html + `<div class="list"><div class="empty">No payments yet. Add each deposit and balance with its due date so nothing sneaks up on you.</div></div>`;
+    const today = todayISO();
+    if (payView === "date") {
+      const open = state.payments.filter((p) => !p.paid);
+      html += payGroup("Overdue", open.filter((p) => p.due && p.due < today).sort(byDue));
+      html += payGroup("Coming up", open.filter((p) => p.due && p.due >= today).sort(byDue));
+      html += payGroup("Date to be set", open.filter((p) => !p.due).sort(byCreated));
+      html += payGroup("Paid", state.payments.filter((p) => p.paid).sort(byDue));
+    } else {
+      const order = names.length ? names : [];
+      const groups = new Map(order.map((n) => [n, []]));
+      for (const p of state.payments) { const k = p.vendor || "No vendor"; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
+      for (const [name, rows] of groups) {
+        if (!rows.length) continue;
+        const tot = rows.filter(hasAmount).reduce((s, p) => s + num(p.amount), 0);
+        const paid = rows.filter((p) => p.paid && hasAmount(p)).reduce((s, p) => s + num(p.amount), 0);
+        html += payGroup(name, rows.sort(byDue), `${money2(paid)} of ${money2(tot)} paid`);
+      }
+    }
+    return html;
+  }
+
   function viewGuests() {
     let html = `<form class="addbar add-guests" data-add="guests">
       <input class="input" name="name" placeholder="Guest or household, like “The Parkers”" aria-label="Guest name" required>
@@ -501,12 +612,12 @@ body { margin: 0; }
   }
 
   // ---------- Events ----------
-  const NUMERIC = new Set(["estimate", "actual", "paid", "cost", "party", "totalBudget"]);
+  const NUMERIC = new Set(["estimate", "actual", "paid", "cost", "party", "totalBudget", "amount"]);
   $("panel").addEventListener("change", (e) => {
     const t = e.target; if (!t.dataset || !t.dataset.field) return;
     const field = t.dataset.field;
     let val = t.type === "checkbox" ? t.checked : t.value;
-    if (NUMERIC.has(field)) val = t.value === "" ? null : num(t.value);
+    if (t.type !== "checkbox" && NUMERIC.has(field)) val = t.value === "" ? null : num(t.value);
     if (typeof val === "string") val = val.trim();
     store.update(t.dataset.col, t.dataset.id, { [field]: val });
   });
@@ -520,11 +631,14 @@ body { margin: 0; }
     if (col === "tasks") data.done = false;
     if (col === "vendors") data.status = "researching";
     if (col === "guests") data.rsvp = "pending";
+    if (col === "payments") data.paid = false;
     store.add(col, data);
     form.reset();
     const first = form.querySelector("input"); if (first) first.focus();
   });
   $("panel").addEventListener("click", (e) => {
+    const v = e.target.closest("[data-pview]");
+    if (v) { payView = v.dataset.pview; renderPanel(); return; }
     const b = e.target.closest(".del"); if (!b) return;
     if (b.classList.contains("armed")) { store.remove(b.dataset.del, b.dataset.id); return; }
     b.classList.add("armed"); b.textContent = "Confirm";
@@ -542,7 +656,7 @@ body { margin: 0; }
   document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => { location.hash = b.dataset.tab; }));
   function fromHash() {
     const h = location.hash.slice(1);
-    tab = ["checklist", "budget", "vendors", "guests"].includes(h) ? h : "checklist";
+    tab = ["payments", "checklist", "budget", "vendors", "guests"].includes(h) ? h : "payments";
     pending = false; renderTabs(); renderPanel();
   }
   window.addEventListener("hashchange", fromHash);
