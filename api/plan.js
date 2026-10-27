@@ -150,6 +150,19 @@ async function importSpreadsheet() {
   await redis(cmds);
 }
 
+// One-time: put the couple's names on the planner without touching other details.
+async function setCoupleNames() {
+  const [first] = await redis([["SET", "wedding:names-kate-derek-1", "1", "NX"]]);
+  if (first !== "OK") return;
+  const [raw] = await redis([["GET", META]]);
+  let meta = {};
+  try { meta = raw ? JSON.parse(raw) : {}; } catch (e) {}
+  if (!meta.partner1 && !meta.partner2) {
+    meta.partner1 = "Kate"; meta.partner2 = "Derek";
+    await redis([["SET", META, JSON.stringify(meta)]]);
+  }
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
@@ -161,6 +174,7 @@ module.exports = async function handler(req, res) {
     if (req.method === "GET") {
       await seedExamples();
       await importSpreadsheet();
+      await setCoupleNames();
       return res.status(200).json(await readPlan());
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
