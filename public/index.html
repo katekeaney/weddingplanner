@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Our Wedding Planner</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..600&family=Figtree:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: stationery masthead with the couple's names, a four-figure summary strip, then tabbed working lists (checklist by planning phase, budget, vendors, guests). */
+:root {
+  --paper: #f5f6f9;
+  --card: #ffffff;
+  --ink: #1d2533;
+  --muted: #5d6679;
+  --line: #dde1ea;
+  --accent: #4657a3;
+  --accent-soft: #e6e9f6;
+  --gold: #9c7b3c;
+  --good: #2f7a55;
+  --good-soft: #e1f1e8;
+  --warn: #9a6512;
+  --warn-soft: #f7ecd8;
+  --bad: #a83a3a;
+  --bad-soft: #f6e2e2;
+  --font-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-data: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #12151c; --card: #1a1f29; --ink: #e6e9f1; --muted: #9aa2b4; --line: #2b3241;
+    --accent: #9eacec; --accent-soft: #252c45; --gold: #d2b16f;
+    --good: #7fcfa2; --good-soft: #1d3329; --warn: #e3b467; --warn-soft: #382c17; --bad: #ec8f8f; --bad-soft: #3b2222;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #12151c; --card: #1a1f29; --ink: #e6e9f1; --muted: #9aa2b4; --line: #2b3241;
+  --accent: #9eacec; --accent-soft: #252c45; --gold: #d2b16f;
+  --good: #7fcfa2; --good-soft: #1d3329; --warn: #e3b467; --warn-soft: #382c17; --bad: #ec8f8f; --bad-soft: #3b2222;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 64px; display: grid; gap: 24px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Masthead */
+.mast { display: grid; gap: 10px; padding-block: 8px 4px; border-bottom: 1px solid var(--line); padding-bottom: 22px; }
+.eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+.names { font-family: var(--font-display); font-weight: 500; font-size: clamp(34px, 6vw, 56px); line-height: 1.05; margin: 0; text-wrap: balance; }
+.names em { font-style: italic; color: var(--accent); font-weight: 400; padding-inline: .12em; }
+.mast-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; color: var(--muted); }
+.mast-meta strong { color: var(--ink); font-weight: 600; }
+.countdown { font-family: var(--font-data); font-size: 13px; color: var(--accent); }
+.linkish { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-size: 14px; }
+
+.details { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 14px; }
+.details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+label.field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+
+/* Banner */
+.banner { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; background: var(--accent-soft); border-radius: 10px; padding: 12px 16px; font-size: 14px; }
+.banner p { margin: 0; min-width: 0; flex: 1 1 260px; }
+
+/* Summary */
+.summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.stat { background: var(--card); padding: 16px 18px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.stat-label { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.stat-value { font-family: var(--font-display); font-size: 30px; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+.stat-sub { font-size: 13px; color: var(--muted); }
+.meter { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.meter > span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.meter.over > span { background: var(--bad); }
+@media (max-width: 760px) { .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tab { background: none; border: 0; padding: 10px 14px; cursor: pointer; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab .count { font-family: var(--font-data); font-size: 12px; color: var(--muted); margin-left: 6px; }
+
+/* Forms */
+.input, .select {
+  width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px;
+  background: var(--card); transition: border-color .15s;
+}
+.input:hover, .select:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.input.num { font-family: var(--font-data); font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; }
+.btn { border: 1px solid var(--accent); background: var(--accent); color: var(--card); border-radius: 7px; padding: 8px 14px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.addbar { display: grid; gap: 8px; align-items: end; background: var(--card); border: 1px dashed var(--line); border-radius: 10px; padding: 12px; }
+.addbar-title { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+/* Rows */
+.panel { display: grid; gap: 18px; }
+.list { display: grid; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.row, .head { display: grid; gap: 8px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--line); }
+.head { border-top: 0; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: var(--paper); padding-block: 8px; }
+.row:first-child { border-top: 0; }
+.row .input, .row .select { border-color: transparent; background: transparent; }
+.row .input:hover, .row .select:hover, .row .input:focus, .row .select:focus { border-color: var(--line); background: var(--card); }
+.del { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 13px; padding: 6px 8px; border-radius: 6px; white-space: nowrap; }
+.del:hover { color: var(--bad); background: var(--bad-soft); }
+.del.armed { color: var(--card); background: var(--bad); }
+.chip { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.empty { padding: 22px 16px; color: var(--muted); text-align: center; }
+
+/* Grid templates per list */
+.g-budget { grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) 72px; }
+.g-vendors { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, .9fr) minmax(0, 1.1fr) 72px; }
+.g-guests { grid-template-columns: minmax(0, 1.6fr) 70px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 70px 72px; }
+.add-tasks { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; }
+.add-budget { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; }
+.add-vendors { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, .8fr) auto; }
+.add-guests { grid-template-columns: minmax(0, 1.8fr) 80px minmax(0, 1fr) auto; }
+@media (max-width: 760px) {
+  .head { display: none; }
+  .g-budget, .g-vendors, .g-guests { grid-template-columns: 1fr 1fr; padding-block: 12px; }
+  .g-budget > :first-child, .g-vendors > :first-child, .g-guests > :first-child { grid-column: 1 / -1; font-weight: 600; }
+  .row .input, .row .select { border-color: var(--line); }
+  .row .del { justify-self: end; grid-column: 2; }
+  .add-tasks, .add-budget, .add-vendors, .add-guests { grid-template-columns: 1fr 1fr; }
+  .addbar > .input:first-child { grid-column: 1 / -1; }
+  .mob-label { display: grid; gap: 2px; }
+  .mob-label::before { content: attr(data-label); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-left: 2px; }
+}
+
+/* Checklist */
+.phase { display: grid; gap: 8px; }
+.phase-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.phase-head h3 { font-family: var(--font-display); font-weight: 500; font-size: 21px; margin: 0; }
+.phase-head .tally { font-family: var(--font-data); font-size: 13px; color: var(--muted); }
+.task { grid-template-columns: 28px minmax(0, 1fr) 72px; }
+.task input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; margin: 0 auto; }
+.task.done .input { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+
+/* Budget */
+.budget-bar { display: grid; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.budget-figs { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+.fig { display: grid; gap: 2px; }
+.fig span { font-size: 12px; color: var(--muted); }
+.fig b { font-family: var(--font-data); font-weight: 500; font-size: 17px; font-variant-numeric: tabular-nums; }
+.fig b.neg { color: var(--bad); }
+.stack { position: relative; height: 12px; background: var(--line); border-radius: 6px; overflow: hidden; }
+.stack .s-paid { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.stack .s-due { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--accent) 38%, var(--line)); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.total-row { font-weight: 600; background: var(--paper); }
+.total-row .t { font-family: var(--font-data); text-align: right; padding-right: 11px; font-variant-numeric: tabular-nums; }
+
+/* Status selects */
+.status { font-weight: 600; font-size: 13px; border-radius: 999px !important; }
+.st-good { color: var(--good); background: var(--good-soft) !important; }
+.st-warn { color: var(--warn); background: var(--warn-soft) !important; }
+.st-bad { color: var(--bad); background: var(--bad-soft) !important; }
+.st-none { color: var(--muted); background: var(--paper) !important; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 8px; font-size: 14px; max-width: calc(100% - 32px); z-index: 20; }
+@media (prefers-reduced-motion: no-preference) { .toast { animation: rise .2s ease-out; } @keyframes rise { from { transform: translate(-50%, 8px); opacity: 0; } } }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+.gate { max-width: 380px; margin: 12vh auto 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: grid; gap: 14px; }
+.gate h2 { font-family: var(--font-display); font-weight: 500; font-size: 28px; margin: 0; }
+.gate p { margin: 0; color: var(--muted); font-size: 14px; }
+.gate .err { color: var(--bad); }
+</style>
+</head>
+<body>
+<form class="gate" id="gate" hidden>
+  <div class="eyebrow">Wedding planner</div>
+  <h2>Enter your passcode</h2>
+  <p>This plan is private to the two of you. Use the passcode you set in Vercel.</p>
+  <input class="input" id="gate-pass" type="password" autocomplete="current-password" aria-label="Passcode" required>
+  <p class="err" id="gate-err" hidden></p>
+  <button class="btn" type="submit">Open our plan</button>
+</form>
+
+<div class="wrap" id="app">
+  <header class="mast">
+    <div class="eyebrow">Wedding planner</div>
+    <h1 class="names" id="names">Your names here</h1>
+    <div class="mast-meta">
+      <span id="when">Set your date</span>
+      <span id="where"></span>
+      <span class="countdown" id="countdown"></span>
+      <button class="linkish" id="editDetailsBtn" type="button">Edit details</button>
+    </div>
+  </header>
+
+  <form class="details" id="details" hidden>
+    <div class="details-grid">
+      <label class="field">Partner one<input class="input" id="d-p1" autocomplete="off"></label>
+      <label class="field">Partner two<input class="input" id="d-p2" autocomplete="off"></label>
+      <label class="field">Wedding date<input class="input" id="d-date" type="date"></label>
+      <label class="field">Venue<input class="input" id="d-venue" autocomplete="off"></label>
+      <label class="field">City<input class="input" id="d-city" autocomplete="off"></label>
+      <label class="field">Total budget ($)<input class="input num" id="d-budget" type="number" min="0" step="100"></label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" type="submit">Save details</button>
+      <button class="btn ghost" type="button" id="cancelDetails">Cancel</button>
+    </div>
+  </form>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <section class="summary" id="summary" aria-label="Planning summary"></section>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-tab="checklist" id="tab-checklist" type="button">Checklist<span class="count"></span></button>
+    <button class="tab" role="tab" data-tab="budget" id="tab-budget" type="button">Budget<span class="count"></span></button>
+    <button class="tab" role="tab" data-tab="vendors" id="tab-vendors" type="button">Vendors<span class="count"></span></button>
+    <button class="tab" role="tab" data-tab="guests" id="tab-guests" type="button">Guests<span class="count"></span></button>
+  </nav>
+
+  <main class="panel" id="panel" role="tabpanel"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  const PHASES = [
+    { k: "12m", l: "12+ months out" },
+    { k: "9m", l: "9 to 12 months" },
+    { k: "6m", l: "6 to 9 months" },
+    { k: "3m", l: "3 to 6 months" },
+    { k: "1m", l: "1 to 3 months" },
+    { k: "final", l: "Final month" },
+    { k: "week", l: "Wedding week" }
+  ];
+  const VENDOR_STATUS = [
+    { v: "researching", l: "Researching", c: "st-none" },
+    { v: "contacted", l: "Contacted", c: "st-warn" },
+    { v: "booked", l: "Booked", c: "st-good" },
+    { v: "deposit", l: "Deposit paid", c: "st-good" },
+    { v: "paid", l: "Paid in full", c: "st-good" }
+  ];
+  const RSVP = [
+    { v: "pending", l: "Pending", c: "st-warn" },
+    { v: "yes", l: "Attending", c: "st-good" },
+    { v: "no", l: "Declined", c: "st-bad" }
+  ];
+  const COLS = ["tasks", "budget", "vendors", "guests"];
+
+  const state = { meta: {}, tasks: [], budget: [], vendors: [], guests: [], loaded: false };
+  let tab = "checklist", pending = false;
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+  const money = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  const byCreated = (a, b) => (a.created || 0) - (b.created || 0) || String(a.id).localeCompare(String(b.id));
+
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 3200);
+  }
+  // ---------- Server API (Vercel function at /api/plan) ----------
+  const PASS_KEY = "wedding-planner-passcode";
+  let passcode = "";
+  try { passcode = localStorage.getItem(PASS_KEY) || ""; } catch (e) {}
+
+  async function api(body) {
+    const res = await fetch("/api/plan", {
+      method: body ? "POST" : "GET",
+      headers: Object.assign({ "x-passcode": passcode }, body ? { "content-type": "application/json" } : {}),
+      body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store"
+    });
+    if (res.status === 401) { const e = new Error("locked"); e.code = "locked"; throw e; }
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) { const e = new Error(json.error || "Request failed"); e.code = "server"; throw e; }
+    return json;
+  }
+
+  function showGate(msg) {
+    $("app").hidden = true; $("gate").hidden = false;
+    $("gate-err").hidden = !msg; $("gate-err").textContent = msg || "";
+    $("gate-pass").focus();
+  }
+
+  function fail(e) {
+    if (e && e.code === "locked") { showGate("That passcode didn't work. Try again."); return; }
+    toast(e && e.code === "server" ? e.message : "That change didn't save. Check your connection and try again.");
+    load();
+  }
+
+  let syncing = 0;
+  async function send(op) {
+    syncing++;
+    try { await api(op); } catch (e) { fail(e); } finally { syncing--; }
+  }
+
+  const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+  // Changes apply on screen immediately, then save to the server.
+  const store = {
+    add(col, data) {
+      const id = newId();
+      data = Object.assign({ created: Date.now() }, data);
+      state[col].push(Object.assign({ id }, data)); render();
+      return send({ op: "add", col, id, data });
+    },
+    update(col, id, patch) {
+      const r = state[col].find((x) => x.id === id); if (r) Object.assign(r, patch); render();
+      return send({ op: "update", col, id, data: patch });
+    },
+    remove(col, id) {
+      state[col] = state[col].filter((x) => x.id !== id); render();
+      return send({ op: "remove", col, id });
+    },
+    setMeta(data) {
+      state.meta = data; render();
+      return send({ op: "meta", data });
+    },
+    clearExamples() {
+      for (const c of COLS) state[c] = state[c].filter((x) => !x.example);
+      if (state.meta.example) state.meta = { totalBudget: state.meta.totalBudget };
+      render();
+      return send({ op: "clearExamples" });
+    }
+  };
+
+  async function load() {
+    if (syncing) return; // don't overwrite changes that are still saving
+    try {
+      const plan = await api();
+      if (syncing) return;
+      state.meta = plan.meta || {};
+      for (const c of COLS) state[c] = Array.isArray(plan[c]) ? plan[c] : [];
+      state.loaded = true;
+      $("gate").hidden = true; $("app").hidden = false;
+      render();
+    } catch (e) {
+      if (e.code === "locked") showGate(passcode ? "That passcode didn't work. Try again." : "");
+      else if (e.code === "server") { state.loaded = true; render(); toast(e.message); }
+      else if (!state.loaded) { $("panel").innerHTML = `<div class="empty">Couldn't reach your plan. Check your connection and reload the page.</div>`; }
+    }
+  }
+
+  // ---------- Rendering ----------
+  function render() {
+    renderHeader(); renderSummary(); renderBanner(); renderTabs();
+    const a = document.activeElement;
+    if (a && $("panel").contains(a) && (a.tagName === "SELECT" || (a.tagName === "INPUT" && a.type !== "checkbox")) && !a.closest(".addbar")) {
+      pending = true; return;
+    }
+    pending = false; renderPanel();
+  }
+
+  function renderHeader() {
+    const m = state.meta;
+    const p1 = m.partner1 || "", p2 = m.partner2 || "";
+    $("names").innerHTML = p1 || p2 ? `${esc(p1 || "Partner one")}<em>&amp;</em>${esc(p2 || "Partner two")}` : "Your names here";
+    if (m.date) {
+      const d = new Date(m.date + "T12:00:00");
+      $("when").innerHTML = `<strong>${d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</strong>`;
+      const today = new Date(); today.setHours(12, 0, 0, 0);
+      const days = Math.round((d - today) / 86400000);
+      $("countdown").textContent = days > 1 ? `${days} days to go` : days === 1 ? "Tomorrow" : days === 0 ? "Today!" : "Married " + Math.abs(days) + " days";
+    } else { $("when").textContent = "Set your date"; $("countdown").textContent = ""; }
+    $("where").textContent = [m.venue, m.city].filter(Boolean).join(", ");
+  }
+
+  function totals() {
+    const est = state.budget.reduce((s, r) => s + num(r.estimate), 0);
+    const act = state.budget.reduce((s, r) => s + num(r.actual), 0);
+    const paid = state.budget.reduce((s, r) => s + num(r.paid), 0);
+    const committed = state.budget.reduce((s, r) => s + (num(r.actual) || num(r.estimate)), 0);
+    return { est, act, paid, committed, total: num(state.meta.totalBudget) };
+  }
+
+  function renderSummary() {
+    const done = state.tasks.filter((t) => t.done).length, nt = state.tasks.length;
+    const b = totals();
+    const booked = state.vendors.filter((v) => ["booked", "deposit", "paid"].includes(v.status)).length;
+    const invited = state.guests.reduce((s, g) => s + Math.max(1, num(g.party)), 0);
+    const yes = state.guests.filter((g) => g.rsvp === "yes").reduce((s, g) => s + Math.max(1, num(g.party)), 0);
+    const no = state.guests.filter((g) => g.rsvp === "no").reduce((s, g) => s + Math.max(1, num(g.party)), 0);
+    const pct = (a, z) => (z ? Math.min(100, Math.round((a / z) * 100)) : 0);
+    const over = b.total && b.committed > b.total;
+    $("summary").innerHTML = `
+      <div class="stat"><span class="stat-label">Tasks done</span><span class="stat-value">${done}<span class="stat-sub"> / ${nt}</span></span>
+        <div class="meter"><span style="width:${pct(done, nt)}%"></span></div></div>
+      <div class="stat"><span class="stat-label">Budget planned</span><span class="stat-value">${money(b.committed)}</span>
+        <div class="meter${over ? " over" : ""}"><span style="width:${pct(b.committed, b.total)}%"></span></div>
+        <span class="stat-sub">${b.total ? (over ? money(b.committed - b.total) + " over" : money(b.total - b.committed) + " left of " + money(b.total)) : "Set a total budget"}</span></div>
+      <div class="stat"><span class="stat-label">Vendors booked</span><span class="stat-value">${booked}<span class="stat-sub"> / ${state.vendors.length}</span></span>
+        <div class="meter"><span style="width:${pct(booked, state.vendors.length)}%"></span></div></div>
+      <div class="stat"><span class="stat-label">Guests attending</span><span class="stat-value">${yes}<span class="stat-sub"> / ${invited}</span></span>
+        <span class="stat-sub">${invited - yes - no} awaiting reply, ${no} declined</span></div>`;
+  }
+
+  function renderBanner() {
+    const el = $("banner");
+    const examples = COLS.some((c) => state[c].some((r) => r.example)) || state.meta.example;
+    if (examples) {
+      if (!el.hidden && el.querySelector("#clearExamples")) return; // keep the button's confirm state
+      el.hidden = false;
+      el.innerHTML = `<p>These are example entries to show how the planner works. Edit them, or clear them and start your own list.</p><button class="btn ghost" type="button" id="clearExamples">Clear examples</button>`;
+    } else el.hidden = true;
+  }
+
+  function renderTabs() {
+    const counts = { checklist: state.tasks.length, budget: state.budget.length, vendors: state.vendors.length, guests: state.guests.length };
+    document.querySelectorAll(".tab").forEach((b) => {
+      b.setAttribute("aria-selected", String(b.dataset.tab === tab));
+      b.querySelector(".count").textContent = counts[b.dataset.tab] || "";
+    });
+  }
+
+  const opt = (list, cur) => list.map((o) => `<option value="${o.v}"${o.v === cur ? " selected" : ""}>${o.l}</option>`).join("");
+  const cls = (list, cur) => (list.find((o) => o.v === cur) || list[0]).c;
+  const ex = (r) => (r.example ? ' <span class="chip">Example</span>' : "");
+  const delBtn = (col, id) => `<button class="del" type="button" data-del="${col}" data-id="${esc(id)}">Delete</button>`;
+  const f = (col, id, field, val, extra = "") => `data-col="${col}" data-id="${esc(id)}" data-field="${field}" value="${esc(val)}" ${extra}`;
+
+  function renderPanel() {
+    const p = $("panel");
+    if (!state.loaded) { p.innerHTML = `<div class="empty">Loading your plan…</div>`; return; }
+    if (tab === "checklist") p.innerHTML = viewChecklist();
+    else if (tab === "budget") p.innerHTML = viewBudget();
+    else if (tab === "vendors") p.innerHTML = viewVendors();
+    else p.innerHTML = viewGuests();
+  }
+
+  function viewChecklist() {
+    let html = `<form class="addbar add-tasks" data-add="tasks">
+      <input class="input" name="title" placeholder="Add a task, like “Book the photographer”" aria-label="Task" required>
+      <select class="select" name="phase" aria-label="When">${PHASES.map((ph) => `<option value="${ph.k}">${ph.l}</option>`).join("")}</select>
+      <button class="btn" type="submit">Add task</button></form>`;
+    if (!state.tasks.length) return html + `<div class="list"><div class="empty">No tasks yet. Add your first one above, grouped by how far out it needs doing.</div></div>`;
+    for (const ph of PHASES) {
+      const items = state.tasks.filter((t) => (t.phase || "12m") === ph.k).sort(byCreated);
+      if (!items.length) continue;
+      const d = items.filter((t) => t.done).length;
+      html += `<section class="phase"><div class="phase-head"><h3>${ph.l}</h3><span class="tally">${d} of ${items.length} done</span></div><div class="list">` +
+        items.map((t) => `<div class="row task${t.done ? " done" : ""}">
+          <input type="checkbox" ${t.done ? "checked" : ""} data-col="tasks" data-id="${esc(t.id)}" data-field="done" aria-label="Mark done">
+          <div style="display:flex;align-items:center;gap:6px;min-width:0"><input class="input" ${f("tasks", t.id, "title", t.title)} aria-label="Task">${ex(t)}</div>
+          ${delBtn("tasks", t.id)}</div>`).join("") + `</div></section>`;
+    }
+    return html;
+  }
+
+  function viewBudget() {
+    const b = totals();
+    const pctOf = (n) => (b.total ? Math.min(100, (n / b.total) * 100) : 0);
+    let html = `<div class="budget-bar">
+      <div class="budget-figs">
+        <div class="fig"><span>Total budget</span><b>${b.total ? money(b.total) : "Not set"}</b></div>
+        <div class="fig"><span>Planned spend</span><b>${money(b.committed)}</b></div>
+        <div class="fig"><span>Paid so far</span><b>${money(b.paid)}</b></div>
+        <div class="fig"><span>Still to pay</span><b>${money(Math.max(0, b.committed - b.paid))}</b></div>
+        <div class="fig"><span>Left to allocate</span><b class="${b.total && b.total < b.committed ? "neg" : ""}">${b.total ? money(b.total - b.committed) : "–"}</b></div>
+      </div>
+      ${b.total ? `<div class="stack" role="img" aria-label="${money(b.paid)} paid and ${money(b.committed)} planned of ${money(b.total)}"><div class="s-due" style="width:${pctOf(b.committed)}%"></div><div class="s-paid" style="width:${pctOf(b.paid)}%"></div></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Paid</span><span><i style="background:color-mix(in srgb, var(--accent) 38%, var(--line))"></i>Planned, not paid</span><span><i style="background:var(--line)"></i>Unallocated</span></div>` :
+      `<div class="stat-sub">Add your total budget under “Edit details” to see how much is left.</div>`}
+    </div>
+    <form class="addbar add-budget" data-add="budget">
+      <input class="input" name="category" placeholder="Category, like “Flowers”" aria-label="Category" required>
+      <input class="input num" name="estimate" type="number" min="0" step="50" placeholder="Estimate $" aria-label="Estimate">
+      <button class="btn" type="submit">Add line</button></form>`;
+    const rows = [...state.budget].sort(byCreated);
+    html += `<div class="list"><div class="head g-budget"><span>Category</span><span style="text-align:right">Estimate</span><span style="text-align:right">Actual</span><span style="text-align:right">Paid</span><span></span></div>`;
+    if (!rows.length) html += `<div class="empty">No budget lines yet. Add categories like venue, catering, and attire.</div>`;
+    html += rows.map((r) => `<div class="row g-budget">
+      <div style="display:flex;align-items:center;gap:6px;min-width:0"><input class="input" ${f("budget", r.id, "category", r.category)} aria-label="Category">${ex(r)}</div>
+      <div class="mob-label" data-label="Estimate"><input class="input num" type="number" min="0" step="50" ${f("budget", r.id, "estimate", r.estimate ?? "")} aria-label="Estimate"></div>
+      <div class="mob-label" data-label="Actual"><input class="input num" type="number" min="0" step="50" ${f("budget", r.id, "actual", r.actual ?? "")} aria-label="Actual cost"></div>
+      <div class="mob-label" data-label="Paid"><input class="input num" type="number" min="0" step="50" ${f("budget", r.id, "paid", r.paid ?? "")} aria-label="Paid"></div>
+      ${delBtn("budget", r.id)}</div>`).join("");
+    if (rows.length) html += `<div class="row g-budget total-row"><span style="padding-left:11px">Total</span><span class="t">${money(b.est)}</span><span class="t">${money(b.act)}</span><span class="t">${money(b.paid)}</span><span></span></div>`;
+    return html + `</div>`;
+  }
+
+  function viewVendors() {
+    let html = `<form class="addbar add-vendors" data-add="vendors">
+      <input class="input" name="name" placeholder="Vendor name" aria-label="Vendor name" required>
+      <input class="input" name="category" placeholder="Service, like “Florist”" aria-label="Service">
+      <input class="input" name="contact" placeholder="Phone or email" aria-label="Contact">
+      <input class="input num" name="cost" type="number" min="0" step="50" placeholder="Quote $" aria-label="Quote">
+      <button class="btn" type="submit">Add vendor</button></form>`;
+    const rows = [...state.vendors].sort(byCreated);
+    html += `<div class="list"><div class="head g-vendors"><span>Vendor</span><span>Service</span><span>Contact</span><span style="text-align:right">Quote</span><span>Status</span><span></span></div>`;
+    if (!rows.length) html += `<div class="empty">No vendors yet. Add the ones you're considering and track them from first call to final payment.</div>`;
+    html += rows.map((r) => `<div class="row g-vendors">
+      <div style="display:flex;align-items:center;gap:6px;min-width:0"><input class="input" ${f("vendors", r.id, "name", r.name)} aria-label="Vendor name">${ex(r)}</div>
+      <div class="mob-label" data-label="Service"><input class="input" ${f("vendors", r.id, "category", r.category)} aria-label="Service"></div>
+      <div class="mob-label" data-label="Contact"><input class="input" ${f("vendors", r.id, "contact", r.contact)} aria-label="Contact"></div>
+      <div class="mob-label" data-label="Quote"><input class="input num" type="number" min="0" step="50" ${f("vendors", r.id, "cost", r.cost ?? "")} aria-label="Quote"></div>
+      <div class="mob-label" data-label="Status"><select class="select status ${cls(VENDOR_STATUS, r.status)}" data-col="vendors" data-id="${esc(r.id)}" data-field="status" aria-label="Status">${opt(VENDOR_STATUS, r.status)}</select></div>
+      ${delBtn("vendors", r.id)}</div>`).join("");
+    return html + `</div>`;
+  }
+
+  function viewGuests() {
+    let html = `<form class="addbar add-guests" data-add="guests">
+      <input class="input" name="name" placeholder="Guest or household, like “The Parkers”" aria-label="Guest name" required>
+      <input class="input num" name="party" type="number" min="1" value="1" aria-label="Party size">
+      <select class="select" name="side" aria-label="Side"><option value="p1">${esc(state.meta.partner1 || "Partner one")}</option><option value="p2">${esc(state.meta.partner2 || "Partner two")}</option><option value="both">Both</option></select>
+      <button class="btn" type="submit">Add guest</button></form>`;
+    const rows = [...state.guests].sort(byCreated);
+    const sides = [{ v: "p1", l: state.meta.partner1 || "Partner one" }, { v: "p2", l: state.meta.partner2 || "Partner two" }, { v: "both", l: "Both" }];
+    html += `<div class="list"><div class="head g-guests"><span>Guest</span><span style="text-align:right">Party</span><span>Side</span><span>RSVP</span><span>Meal</span><span>Table</span><span></span></div>`;
+    if (!rows.length) html += `<div class="empty">No guests yet. Add each household with how many people are invited.</div>`;
+    html += rows.map((r) => `<div class="row g-guests">
+      <div style="display:flex;align-items:center;gap:6px;min-width:0"><input class="input" ${f("guests", r.id, "name", r.name)} aria-label="Guest name">${ex(r)}</div>
+      <div class="mob-label" data-label="Party"><input class="input num" type="number" min="1" ${f("guests", r.id, "party", r.party ?? 1)} aria-label="Party size"></div>
+      <div class="mob-label" data-label="Side"><select class="select" data-col="guests" data-id="${esc(r.id)}" data-field="side" aria-label="Side">${sides.map((o) => `<option value="${o.v}"${o.v === r.side ? " selected" : ""}>${esc(o.l)}</option>`).join("")}</select></div>
+      <div class="mob-label" data-label="RSVP"><select class="select status ${cls(RSVP, r.rsvp)}" data-col="guests" data-id="${esc(r.id)}" data-field="rsvp" aria-label="RSVP">${opt(RSVP, r.rsvp)}</select></div>
+      <div class="mob-label" data-label="Meal"><input class="input" ${f("guests", r.id, "meal", r.meal)} placeholder="–" aria-label="Meal choice"></div>
+      <div class="mob-label" data-label="Table"><input class="input" ${f("guests", r.id, "table", r.table)} placeholder="–" aria-label="Table"></div>
+      ${delBtn("guests", r.id)}</div>`).join("");
+    return html + `</div>`;
+  }
+
+  // ---------- Events ----------
+  const NUMERIC = new Set(["estimate", "actual", "paid", "cost", "party", "totalBudget"]);
+  $("panel").addEventListener("change", (e) => {
+    const t = e.target; if (!t.dataset || !t.dataset.field) return;
+    const field = t.dataset.field;
+    let val = t.type === "checkbox" ? t.checked : t.value;
+    if (NUMERIC.has(field)) val = t.value === "" ? null : num(t.value);
+    if (typeof val === "string") val = val.trim();
+    store.update(t.dataset.col, t.dataset.id, { [field]: val });
+  });
+  $("panel").addEventListener("focusout", () => {
+    setTimeout(() => { if (pending && !$("panel").contains(document.activeElement)) { pending = false; renderPanel(); } else if (pending) render(); }, 0);
+  });
+  $("panel").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target, col = form.dataset.add, fd = new FormData(form), data = {};
+    for (const [k, v] of fd.entries()) data[k] = NUMERIC.has(k) ? (v === "" ? null : num(v)) : String(v).trim();
+    if (col === "tasks") data.done = false;
+    if (col === "vendors") data.status = "researching";
+    if (col === "guests") data.rsvp = "pending";
+    store.add(col, data);
+    form.reset();
+    const first = form.querySelector("input"); if (first) first.focus();
+  });
+  $("panel").addEventListener("click", (e) => {
+    const b = e.target.closest(".del"); if (!b) return;
+    if (b.classList.contains("armed")) { store.remove(b.dataset.del, b.dataset.id); return; }
+    b.classList.add("armed"); b.textContent = "Confirm";
+    setTimeout(() => { if (b.isConnected) { b.classList.remove("armed"); b.textContent = "Delete"; } }, 3000);
+  });
+
+  $("banner").addEventListener("click", async (e) => {
+    const b = e.target.closest("#clearExamples"); if (!b) return;
+    if (!b.classList.contains("armed")) { b.classList.add("armed"); b.textContent = "Clear all examples?"; setTimeout(() => { if (b.isConnected) { b.classList.remove("armed"); b.textContent = "Clear examples"; } }, 3000); return; }
+    b.disabled = true; b.textContent = "Clearing…";
+    await store.clearExamples();
+    toast("Examples cleared");
+  });
+
+  document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => { location.hash = b.dataset.tab; }));
+  function fromHash() {
+    const h = location.hash.slice(1);
+    tab = ["checklist", "budget", "vendors", "guests"].includes(h) ? h : "checklist";
+    pending = false; renderTabs(); renderPanel();
+  }
+  window.addEventListener("hashchange", fromHash);
+
+  // Details form
+  const details = $("details");
+  $("editDetailsBtn").addEventListener("click", () => {
+    const m = state.meta;
+    $("d-p1").value = m.partner1 || ""; $("d-p2").value = m.partner2 || ""; $("d-date").value = m.date || "";
+    $("d-venue").value = m.venue || ""; $("d-city").value = m.city || ""; $("d-budget").value = m.totalBudget ?? "";
+    details.hidden = !details.hidden; if (!details.hidden) $("d-p1").focus();
+  });
+  $("cancelDetails").addEventListener("click", () => (details.hidden = true));
+  details.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const m = {
+      partner1: $("d-p1").value.trim(), partner2: $("d-p2").value.trim(), date: $("d-date").value,
+      venue: $("d-venue").value.trim(), city: $("d-city").value.trim(),
+      totalBudget: $("d-budget").value === "" ? null : num($("d-budget").value)
+    };
+    details.hidden = true;
+    await store.setMeta(m);
+    toast("Details saved");
+  });
+
+  // ---------- Boot ----------
+  $("gate").addEventListener("submit", (e) => {
+    e.preventDefault();
+    passcode = $("gate-pass").value.trim();
+    try { localStorage.setItem(PASS_KEY, passcode); } catch (err) {}
+    $("gate-err").hidden = true;
+    load();
+  });
+
+  fromHash(); render();
+  load();
+  // Pick up your partner's changes: refresh every 20 seconds while the page is open, and when you come back to it.
+  setInterval(() => { if (document.visibilityState === "visible" && !$("app").hidden) load(); }, 20000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !$("app").hidden) load(); });
+})();
+</script>
+</body>
+</html>
